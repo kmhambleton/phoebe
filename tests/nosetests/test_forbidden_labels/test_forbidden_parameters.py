@@ -32,10 +32,11 @@ def test_forbidden(verbose=False):
     b.add_solver('optimizer.differential_corrections')
     b.add_solver('optimizer.cg')
     b.add_solver('optimizer.powell')
-    b.add_solver('sampler.emcee')
+    b.add_solver('sampler.emcee', solver='emcee_solv')
     b.add_solver('sampler.dynesty')
 
     b.add_server('remoteslurm')
+    b.add_server('localthread')
 
 
     # TODO: include constraint_func?  Shouldn't matter since they're not in twigs
