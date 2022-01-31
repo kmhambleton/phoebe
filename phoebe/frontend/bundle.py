@@ -109,6 +109,12 @@ def _get_add_func(mod, func, return_none_if_not_found=False):
         raise ValueError("could not find callable function in {}.{}"
                          .format(mod, func))
 
+def _is_equiv_array_or_float(value1, value2):
+    if hasattr(value1, '__iter__'):
+        return np.all(value1==value2)
+    else:
+        return value1==value2
+
 
 class RunChecksItem(object):
     def __init__(self, b, message, param_uniqueids=[], fail=True, affects_methods=[]):
@@ -1224,7 +1230,8 @@ class Bundle(ParameterSet):
 
     def save(self, filename, compact=False, incl_uniqueid=True):
         """
-        Save the bundle to a JSON-formatted ASCII file.
+        Save the bundle to a JSON-formatted ASCII file.  This will run failed
+        and delayed constraints and raise an error if they fail.
 
         See also:
         * <phoebe.parameters.ParameterSet.save>
@@ -1244,6 +1251,8 @@ class Bundle(ParameterSet):
             logger.warning("saving without uniqueids could cause issues with solutions, use with caution")
         # TODO: add option for clear_models, clear_solution
         # NOTE: PS.save will handle os.path.expanduser
+        self.run_delayed_constraints()
+        self.run_failed_constraints()
         return super(Bundle, self).save(filename, incl_uniqueid=incl_uniqueid,
                                         compact=compact)
 
@@ -7160,7 +7169,7 @@ class Bundle(ParameterSet):
         for constraint_id in [p.uniqueid for p in self.filter(context='constraint', **_skip_filter_checks).to_list()]:
             previous_value = self.get_parameter(uniqueid=constraint_id, **_skip_filter_checks).constrained_parameter.value
             param = self.run_constraint(uniqueid=constraint_id, return_parameter=True, skip_kwargs_checks=True, suppress_error=False)
-            if param not in changes and param.value != previous_value:
+            if param not in changes and not _is_equiv_array_or_float(param.value, previous_value):
                 changes.append(param)
         return changes
 
@@ -8106,16 +8115,25 @@ class Bundle(ParameterSet):
         ret = {}
         changed_params = []
         for sampled_value, uniqueid, unit in zip(sampled_values, uniqueids, [dist.unit for dist in dc.dists]):
+            uniqueid, index = _extract_index_from_string(uniqueid)
             ref_param = self.get_parameter(uniqueid=uniqueid, **_skip_filter_checks)
 
             if set_value:
-                ref_param.set_value(sampled_value, unit=unit)
+                if index is None:
+                    ref_param.set_value(sampled_value, unit=unit)
+                else:
+                    ref_param.set_index_value(index, sampled_value, unit=unit)
+
                 changed_params.append(ref_param)
             else:
+                k = getattr(ref_param, keys)
+                if index is not None:
+                    k += '[{}]'.format(index)
                 if as_quantity:
-                    ret[getattr(ref_param, keys)] = sampled_value * unit
+                    # this is the actual problem
+                    ret[k] = sampled_value * unit
                 else:
-                    ret[getattr(ref_param, keys)] = (sampled_value * unit).to(ref_param.default_unit).value
+                    ret[k] = (sampled_value * unit).to(ref_param.default_unit).value
 
 
         if set_value:
@@ -12067,9 +12085,10 @@ class Bundle(ParameterSet):
                         changed_params.append(param)
 
                     if index is None:
-                        param.set_value(value=dist.slice(i).mean(), unit=dist.slice(i).unit)
+                        # NOTE: .median() is necesary over np.median() since its acting on a distl object
+                        param.set_value(value=dist.slice(i).median(), unit=dist.slice(i).unit)
                     else:
-                        param.set_index_value(index=index, value=dist.slice(i).mean(), unit=dist.slice(i).unit)
+                        param.set_index_value(index=index, value=dist.slice(i).median(), unit=dist.slice(i).unit)
 
         else:
             fitted_values = solution_ps.get_value(qualifier='fitted_values', **_skip_filter_checks)
