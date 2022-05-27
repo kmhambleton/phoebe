@@ -10959,8 +10959,11 @@ static PyObject *roche_contact_Omega_at_partial_vol(PyObject *self, PyObject *ar
     xrange[1] = (OmegaC[1] < OmegaC[2] ? L[2] : d*gen_roche::right_lobe_right_xborder(d*Omega_min, q, b));
   }
 
-  int dir = (choice == 0 ? 1 : -1);
-  gen_roche::area_volume_directed_integration(buf, 2, dir, xrange, Omega_min, q, 1., d, 1 << 14);
+  int
+    dir = (choice == 0 ? 1 : -1),
+    m = 1 << 14;
+
+  gen_roche::area_volume_directed_integration(buf, 2, dir, xrange, Omega_min, q, 1., d, m);
 
   vol_max = buf[1];
 

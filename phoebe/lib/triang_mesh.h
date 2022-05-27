@@ -26,9 +26,9 @@ struct T3Dpoint {
   T data[3];     // normal vector of triangle
 
   T3Dpoint() {}
-  
+
   T3Dpoint(const T & val):data{val, val, val} {}
-  
+
   T3Dpoint(const T3Dpoint & v) : data{v.data[0],v.data[1],v.data[2]} { }
 
   T3Dpoint(const T &x1, const T &x2, const T &x3) : data{x1, x2, x3} {}
@@ -387,7 +387,13 @@ T mesh_area(
 
   T a[3], b[3], c[3], *v[3];
 
-  long double sumA = 0;
+  #if defined(AVOID_LONGDOUBLE)
+  using real = double;
+  #else
+  using real = long double;
+  #endif
+
+  real sumA = 0;
 
   for (auto && t: Tr) {
 

@@ -369,7 +369,7 @@ ext_modules = [
     Extension('libphoebe',
       sources = ['phoebe/lib/libphoebe.cpp'],
       language='c++',
-      extra_compile_args = ["-std=c++11"],
+      extra_compile_args = ["-std=c++11", "-DAVOID_LONGDOUBLE", "-O3"],
       include_dirs=[numpy.get_include()]
       ),
 

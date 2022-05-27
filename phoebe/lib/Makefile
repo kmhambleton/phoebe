@@ -1,7 +1,7 @@
 #CXX=icpc
 CXX=g++
 #CXX=clang++
-CXXFLAGS=-O3 -Wall -std=c++11
+CXXFLAGS=-O3 -Wall -std=c++11 -DAVOID_LONGDOUBLE
 
 ifdef PYTHON
 CXXFLAGS+=$(shell $(PYTHON)-config --includes)

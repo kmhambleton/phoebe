@@ -27,31 +27,31 @@ namespace utils {
 
   template<class T>
   constexpr T pi() {return T(3.14159265358979323846264338327950419984L);};
-  
+
   /*
     Approximation formula for ArcCos
-    
+
     Input:
       x in [-1,1]
     Return:
       arccos(x) in [0,pi]
-      
-    Ref: 
-      p.81 Handbook of Mathematical Functions, by M. Abramowitz and I. Stegun 
-  */ 
+
+    Ref:
+      p.81 Handbook of Mathematical Functions, by M. Abramowitz and I. Stegun
+  */
   float __acosf(const float & x) {
-    
+
     if (x ==  0) return 1.57079632679489;
     if (x >=  1) return 0;
     if (x <= -1) return 3.14159265358979;
-    
-    float 
+
+    float
       t = std::abs(x),
       s = std::sqrt(1-t)*(1.5707288 + t*(-0.2121144 + (0.074261 - 0.0187293*t)*t));
-    
+
     return (x > 0 ? s : 3.14159265358979 - s);
   }
-  
+
   /*
     Return square of the value.
 
@@ -487,11 +487,17 @@ namespace utils {
 
       int  ir = 0;
 
+      #if defined(AVOID_LONGDOUBLE)
+      using real = T;
+      #else
+      using real = long double;
+      #endif
+
       for (auto && xi: roots) {
 
         int it = 0;
 
-        long double dx, x = xi, f, df, d2f, e;
+        real dx, x = xi, f, df, d2f, e;
 
         do {
 

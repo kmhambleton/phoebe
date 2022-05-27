@@ -116,7 +116,7 @@ struct IntPoint {
   */
 
   void Clear() {X = Y = 0;}
-  
+
   inline bool operator == (const IntPoint& rhs) const
   {
     return X == rhs.X && Y == rhs.Y;
@@ -536,7 +536,7 @@ struct TEdge {
 
   void InitEdge(TEdge* eNext, TEdge* ePrev, const IntPoint& Pt) {
     Clear();
-    
+
     Next = eNext;
     Prev = ePrev;
     Curr = Pt;
@@ -548,12 +548,12 @@ struct TEdge {
     Curr.Clear();
     Top.Clear();
     Delta.Clear();
-    
+
     Dx = 0;
     PolyTyp = ptUnset;
     Side = esUnset;
     WindDelta = WindCnt = WindCnt2 = OutIdx = 0;
-    OutIdx = WindCnt2 = WindCnt = WindDelta = 0; 
+    OutIdx = WindCnt2 = WindCnt = WindDelta = 0;
     Next= Prev = NextInLML = NextInAEL = PrevInAEL = NextInSEL = PrevInSEL = 0;
   }
 
@@ -924,7 +924,13 @@ double Area(const Path &poly)
 
   if (size < 3) return 0;
 
-  long double a = 0;
+  #if defined(AVOID_LONGDOUBLE)
+  using real = double;
+  #else
+  using real = long double;
+  #endif
+
+  real a = 0;
 
   #if defined(use_int32)
   for (int i = 0, j = size - 1; i < size; ++i)
@@ -935,7 +941,7 @@ double Area(const Path &poly)
   #else
   for (int i = 0, j = size - 1; i < size; ++i)
   {
-    a += double(poly[j].X + poly[i].X) * (poly[j].Y - poly[i].Y);
+    a += real(poly[j].X + poly[i].X) * (poly[j].Y - poly[i].Y);
     j = i;
   }
   #endif
@@ -944,7 +950,13 @@ double Area(const Path &poly)
 
 double Area(const Paths &polys) {
 
-  long double a = 0;
+  #if defined(AVOID_LONGDOUBLE)
+  using real = double;
+  #else
+  using real = long double;
+  #endif
+
+  real a = 0;
 
   //for (int i = 0, size = polys.size(); i < size; ++i) a += Area(polys[i]);
   for (auto && p : polys) a += Area(p);
@@ -960,7 +972,13 @@ double Area(const OutRec &outRec)
 
   if (!op) return 0;
 
-  long double a = 0;
+  #if defined(AVOID_LONGDOUBLE)
+  using real = double;
+  #else
+  using real = long double;
+  #endif
+
+  real a = 0;
 
   #if defined(use_int32)
   do {
@@ -969,7 +987,7 @@ double Area(const OutRec &outRec)
   } while (op != outRec.Pts);
   #else
   do {
-    a += double(op->Prev->Pt.X + op->Pt.X) * (op->Prev->Pt.Y - op->Pt.Y);
+    a += real(op->Prev->Pt.X + op->Pt.X) * (op->Prev->Pt.Y - op->Pt.Y);
     op = op->Next;
   } while (op != outRec.Pts);
   #endif
@@ -5889,13 +5907,19 @@ std::ostream& operator <<(std::ostream &s, const Paths &p)
 //------------------------------------------------------------------------------
 void PolygonCentroid(const Paths& polys, DoublePoint &P){
 
-  long double sum[3] = {0, 0}, A = 0, f;
+  #if defined(AVOID_LONGDOUBLE)
+  using real = double;
+  #else
+  using real  = long double;
+  #endif
+
+  real sum[3] = {0, 0}, A = 0, f;
 
   for (auto && poly : polys) {
 
     for (int size = poly.size(), i = 0, j = size - 1; i < size; ++i) {
 
-      f = (long double)(poly[i].Y)*poly[j].X - (long double)(poly[i].X)*poly[j].Y;
+      f = (real)(poly[i].Y)*poly[j].X - (real)(poly[i].X)*poly[j].Y;
 
       A += f;
 
