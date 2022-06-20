@@ -95,7 +95,7 @@ def check_unix_compiler(plat, plat_ver, compiler, extensions, compiler_name):
     if ver != '': version_ok = LooseVersion(ver) >= LooseVersion("5.0")
 
   # LLVm clang compiler
-  elif re.search(r'^clang', compiler_name):
+  elif re.search(r'clang', compiler_name):
     name = 'clang'
     compiler_found = True
 
