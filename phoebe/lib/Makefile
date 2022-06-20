@@ -1,7 +1,16 @@
+##  Run as
+##      make
+##  or
+##      PYTHON=python3 make
+##  or
+##      PYTHON=python make
+
+
 #CXX=icpc
-CXX=g++
-#CXX=clang++
-CXXFLAGS=-O3 -Wall -std=c++11 -DAVOID_LONGDOUBLE
+#CXX=g++
+CXX=clang++
+#CXXFLAGS=-O3 -Wall -std=c++11 -DAVOID_LONGDOUBLE
+CXXFLAGS=-O3 -Wall -std=c++11
 
 ifdef PYTHON
 CXXFLAGS+=$(shell $(PYTHON)-config --includes)
