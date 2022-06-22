@@ -12165,7 +12165,7 @@ class Bundle(ParameterSet):
                                 kind = gp_ps.get_value(qualifier='kernel', **_skip_filter_checks)
 
                                 kwargs = {p.qualifier: p.value for p in gp_ps.exclude(qualifier=['kernel', 'enabled']).to_list() if p.is_visible}
-                                # TODO: replace this with getting the parameter from compute options
+
                                 if _exclude_phases_enabled:
                                     exclude_phase_ranges = computeparams.get_value(qualifier='gp_exclude_phases', dataset=ds, **_skip_filter_checks)
                                 else:
@@ -12227,12 +12227,21 @@ class Bundle(ParameterSet):
                                                 'dot_product': _sklearn.gaussian_process.kernels.DotProduct}
 
                             gp_kernel, gp_x, gp_y, gp_yerr = _load_gps(gp_kernel_classes, gp_sklearn_features, ds)
-
                             gp_regressor = GaussianProcessRegressor(kernel=gp_kernel)
-                            gp_regressor.fit(gp_x.reshape(-1,1), gp_y)
-
-                            # NOTE: .predict can also be called directly to the model times if we want to avoid interpolation altogether
-                            gp_y = gp_regressor.predict(ds_x.reshape(-1,1), return_std=False)
+                            scale_fluxes = computeparams.get_value(qualifier='gp_scale_fluxes', dataset=ds, **_skip_filter_checks)
+                            
+                            if scale_fluxes:
+                                from sklearn.preprocessing import StandardScaler
+                                scaler = StandardScaler()
+                                gp_y_scaled = scaler.fit_transform(gp_y.reshape(-1,1))
+                                gp_y_scaled = gp_y_scaled.flatten()
+                                gp_regressor.fit(gp_x.reshape(-1,1), gp_y_scaled)
+                                gp_y_model_scaled = gp_regressor.predict(ds_x.reshape(-1,1), return_std=False)
+                                gp_y_model = scaler.inverse_transform(gp_y_model_scaled.reshape(-1,1))
+                            else:
+                                gp_regressor.fit(gp_x.reshape(-1,1), gp_y)
+                                # NOTE: .predict can also be called directly to the model times if we want to avoid interpolation altogether
+                                gp_y_model = gp_regressor.predict(ds_x.reshape(-1,1), return_std=False)
 
                         if len(gp_celerite2_features) > 0:
                             gp_kernel_classes = {'sho': _celerite2.terms.SHOTerm,
@@ -12243,11 +12252,11 @@ class Bundle(ParameterSet):
 
                             gp = _celerite2.GaussianProcess(gp_kernel, mean=0.0)
                             gp.compute(gp_x, yerr=gp_yerr)
-                            gp_y = gp.predict(gp_y, t=ds_x, return_var=False)
+                            gp_y_model= gp.predict(gp_y, t=ds_x, return_var=False)
 
 
                         # store just the GP component in the model PS as well
-                        gp_param = FloatArrayParameter(qualifier='gps', value=gp_y, default_unit=model_y.unit, readonly=True, description='GP contribution to the model {}'.format(yqualifier))
+                        gp_param = FloatArrayParameter(qualifier='gps', value=gp_y_model, default_unit=model_y.unit, readonly=True, description='GP contribution to the model {}'.format(yqualifier))
                         y_nogp_param = FloatArrayParameter(qualifier='{}_nogps'.format(yqualifier), value=model_y_dstimes, default_unit=model_y.unit, readonly=True, description='{} before adding gps'.format(yqualifier))
                         if not np.all(ds_x == model_x):
                             logger.warning("model for dataset='{}' resampled at dataset times when adding GPs".format(ds))
@@ -12256,7 +12265,7 @@ class Bundle(ParameterSet):
                         self._attach_params([gp_param, y_nogp_param], dataset=ds, check_copy_for=False, **metawargs)
 
                         # update the model to include the GP contribution
-                        model_ps.set_value(qualifier=yqualifier, value=model_y_dstimes+gp_y, dataset=ds, component=ds_comp, ignore_readonly=True, **_skip_filter_checks)
+                        model_ps.set_value(qualifier=yqualifier, value=model_y_dstimes+gp_y_model, dataset=ds, component=ds_comp, ignore_readonly=True, **_skip_filter_checks)
 
         except Exception as err:
             restore_conf()
