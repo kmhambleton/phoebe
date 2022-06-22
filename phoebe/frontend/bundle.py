@@ -12238,6 +12238,7 @@ class Bundle(ParameterSet):
                                 gp_regressor.fit(gp_x.reshape(-1,1), gp_y_scaled)
                                 gp_y_model_scaled = gp_regressor.predict(ds_x.reshape(-1,1), return_std=False)
                                 gp_y_model = scaler.inverse_transform(gp_y_model_scaled.reshape(-1,1))
+                                gp_y_model = gp_y_model.flatten()
                             else:
                                 gp_regressor.fit(gp_x.reshape(-1,1), gp_y)
                                 # NOTE: .predict can also be called directly to the model times if we want to avoid interpolation altogether
@@ -12249,10 +12250,25 @@ class Bundle(ParameterSet):
                                                 'matern32': _celerite2.terms.Matern32Term
                                                 }
                             gp_kernel, gp_x, gp_y, gp_yerr = _load_gps(gp_kernel_classes, gp_celerite2_features, ds)
-
-                            gp = _celerite2.GaussianProcess(gp_kernel, mean=0.0)
-                            gp.compute(gp_x, yerr=gp_yerr)
-                            gp_y_model= gp.predict(gp_y, t=ds_x, return_var=False)
+                            
+                            if scale_fluxes:
+                                from sklearn.preprocessing import StandardScaler
+                                scaler = StandardScaler()
+                                gp_y_scaled = scaler.fit_transform(gp_y.reshape(-1,1))
+                                gp_yerr_scaled = scaler.transform(gp_yerr)
+                                gp_y_scaled = gp_y_scaled.flatten()
+                                gp_yerr_scaled = gp_yerr_scaled.flatten()
+                                
+                                gp = _celerite2.GaussianProcess(gp_kernel, mean=0.0)
+                                gp.compute(gp_x, yerr=gp_yerr_scaled)
+                                gp_y_model_scaled = gp.predict(gp_y_scaled, t=ds_x, return_var=False)
+                                gp_y_model = scaler.inverse_transform(gp_y_model_scaled.reshape(-1,1))
+                                gp_y_model = gp_y_model.flatten()
+                                
+                            else:
+                                gp = _celerite2.GaussianProcess(gp_kernel, mean=0.0)
+                                gp.compute(gp_x, yerr=gp_yerr)
+                                gp_y_model= gp.predict(gp_y, t=ds_x, return_var=False)
 
 
                         # store just the GP component in the model PS as well
