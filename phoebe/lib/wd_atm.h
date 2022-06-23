@@ -90,7 +90,7 @@ namespace wd_atm {
     // store data in a string
     std::string s;
     std::ifstream in(filename, std::ios::in | std::ios::binary);
-
+    if (!in.is_open()) return 0;
     if (in.fail()) return -2;
     if (!in.is_open()) return -1;
 
@@ -100,7 +100,7 @@ namespace wd_atm {
     in.read((char*)s.data(), s.size());
     in.close();
 
-    // replace D with E, FORTRAN JOKE ON HUMANITY
+    // replace D with E, FORTRAN's JOKE ON HUMANITY
     std::replace(s.begin(), s.end(), 'D', 'E');
 
     // read word by word from a string

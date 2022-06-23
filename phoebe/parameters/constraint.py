@@ -1091,6 +1091,11 @@ def semidetached(b, component, solve_for=None, **kwargs):
     """
     Create a constraint to force requiv to be semidetached.
 
+    Note that the point region in semidetached systems often falls outside the
+    atmosphere grids and will raise an error during <phoebe.frontend.bundle.Bundle.run_compute>
+    which cannot be caught in advance via <phoebe.frontend.bundle.Bundle.run_checks>.
+    It may be necessary to set `atm` to 'blackbody' and `ld_mode` to 'manual'.
+
     This is usually passed as an argument to
      <phoebe.frontend.bundle.Bundle.add_constraint> as
      `b.add_constraint('semidetached', component='primary')`, where `component` is
@@ -2085,8 +2090,6 @@ def requiv_single_max(b, component, solve_for=None, **kwargs):
     Create a constraint to determine the critical value of requiv for a single
     star.
 
-    **NEW IN 2.3.31**
-
     This constraint is automatically created and attached for all single stars
     via <phoebe.frontend.bundle.Bundle.set_hierarchy>.
 
@@ -2804,7 +2807,7 @@ def extinction(b, solve_for=None, **kwargs):
         rhs = Av / Rv
     elif solve_for in [Av]:
         lhs = Av
-        rhs = Rv * Av
+        rhs = Rv * ebv
     elif solve_for in [Rv]:
         lhs = Rv
         # NOTE: could result in infinity
